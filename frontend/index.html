@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClaimTrace — Insurance Claims Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b2e;
+    --navy-light: #14263e;
+    --navy-lighter: #1c3454;
+    --gold: #c9a24b;
+    --gold-bright: #e0bd6a;
+    --cream: #f2ede2;
+    --gray: #8a94a6;
+    --red: #b5544a;
+    --green: #5a8f6f;
+    --border: #2a3e5c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy);
+    color: var(--cream);
+    font-family: 'IBM Plex Sans', sans-serif;
+    line-height: 1.5;
+  }
+
+  header {
+    padding: 48px 32px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: var(--cream);
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    color: var(--gray);
+    font-size: 0.95rem;
+    margin-top: 8px;
+    max-width: 60ch;
+  }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  .status-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-bottom: 32px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .status-dot.error { background: var(--red); }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .summary-card {
+    background: var(--navy-light);
+    padding: 20px;
+  }
+
+  .summary-label {
+    font-size: 0.75rem;
+    color: var(--gray);
+    margin-bottom: 6px;
+  }
+
+  .summary-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--gold-bright);
+  }
+
+  .filters {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: var(--navy-light);
+    border: 1px solid var(--border);
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .filter-group label {
+    font-size: 0.75rem;
+    color: var(--gray);
+  }
+
+  select {
+    background: var(--navy);
+    color: var(--cream);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
+    min-width: 160px;
+  }
+
+  select:focus {
+    outline: 2px solid var(--gold);
+    outline-offset: -1px;
+  }
+
+  .table-wrap {
+    border: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 12px 16px;
+    background: var(--navy-lighter);
+    color: var(--gray);
+    font-weight: 500;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr:hover {
+    background: var(--navy-lighter);
+  }
+
+  .fraud-yes {
+    color: var(--red);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .fraud-no {
+    color: var(--gray);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .amount {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .empty-state, .loading-state {
+    padding: 48px;
+    text-align: center;
+    color: var(--gray);
+  }
+
+  footer {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 32px 48px;
+    color: var(--gray);
+    font-size: 0.8rem;
+  }
+
+  footer a { color: var(--gold); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 700px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    header, main, footer { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <h1>ClaimTrace</h1>
+    <p class="subtitle">A live insurance claims explorer, pulling directly from a PostgreSQL star schema through a Django REST API. Filter by state, severity, and fraud status below.</p>
+  </div>
+</header>
+
+<main>
+  <div class="status-line">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Connecting to API...</span>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Total claims</div>
+      <div class="summary-value" id="statTotal">—</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Flagged as fraud</div>
+      <div class="summary-value" id="statFraud">—</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Avg. claim amount</div>
+      <div class="summary-value" id="statAvg">—</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Date anomalies</div>
+      <div class="summary-value" id="statAnomaly">—</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <label for="filterState">Policy state</label>
+      <select id="filterState"><option value="">All</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="filterSeverity">Incident severity</label>
+      <select id="filterSeverity"><option value="">All</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="filterFraud">Fraud reported</label>
+      <select id="filterFraud">
+        <option value="">All</option>
+        <option value="Y">Yes</option>
+        <option value="N">No</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Claim ID</th>
+          <th>Policy state</th>
+          <th>Auto</th>
+          <th>Incident type</th>
+          <th>Severity</th>
+          <th>Total claim</th>
+          <th>Fraud</th>
+        </tr>
+      </thead>
+      <tbody id="claimsBody">
+        <tr><td colspan="7" class="loading-state">Loading claims...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer>
+  Built by Pedro Vasconez — Django REST Framework, PostgreSQL, vanilla JS.
+  API served locally at <a href="http://127.0.0.1:8000/api/claims/" target="_blank">127.0.0.1:8000/api/claims/</a>
+</footer>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000/api';
+  let allClaims = [];
+
+  async function loadClaims() {
+    try {
+      const response = await fetch(`${API_BASE}/claims/`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      allClaims = await response.json();
+
+      document.getElementById('statusDot').classList.remove('error');
+      document.getElementById('statusText').textContent = `Connected — ${allClaims.length} claims loaded from live API`;
+
+      populateFilters(allClaims);
+      renderSummary(allClaims);
+      renderTable(allClaims);
+    } catch (err) {
+      document.getElementById('statusDot').classList.add('error');
+      document.getElementById('statusText').textContent = `Connection failed: ${err.message}. Is the Django server running at 127.0.0.1:8000?`;
+      document.getElementById('claimsBody').innerHTML =
+        '<tr><td colspan="7" class="empty-state">Could not reach the API. Make sure "python manage.py runserver" is running.</td></tr>';
+    }
+  }
+
+  function populateFilters(claims) {
+    const states = [...new Set(claims.map(c => c.policy_state))].sort();
+    const severities = [...new Set(claims.map(c => c.incident.incident_severity))].sort();
+
+    const stateSelect = document.getElementById('filterState');
+    states.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      stateSelect.appendChild(opt);
+    });
+
+    const severitySelect = document.getElementById('filterSeverity');
+    severities.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      severitySelect.appendChild(opt);
+    });
+  }
+
+  function renderSummary(claims) {
+    const total = claims.length;
+    const fraudCount = claims.filter(c => c.fraud_reported === 'Y').length;
+    const avgAmount = claims.reduce((sum, c) => sum + parseFloat(c.total_claim_amount), 0) / (total || 1);
+    const anomalyCount = claims.filter(c => c.is_date_anomaly).length;
+
+    document.getElementById('statTotal').textContent = total.toLocaleString();
+    document.getElementById('statFraud').textContent = `${fraudCount} (${((fraudCount / total) * 100).toFixed(1)}%)`;
+    document.getElementById('statAvg').textContent = `$${avgAmount.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+    document.getElementById('statAnomaly').textContent = anomalyCount;
+  }
+
+  function renderTable(claims) {
+    const tbody = document.getElementById('claimsBody');
+
+    if (claims.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No claims match these filters.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = claims.slice(0, 100).map(c => `
+      <tr>
+        <td>${c.claim_id}</td>
+        <td>${c.policy_state}</td>
+        <td>${c.auto_make} ${c.auto_model} (${c.auto_year})</td>
+        <td>${c.incident.incident_type}</td>
+        <td>${c.incident.incident_severity}</td>
+        <td class="amount">$${parseFloat(c.total_claim_amount).toLocaleString()}</td>
+        <td class="${c.fraud_reported === 'Y' ? 'fraud-yes' : 'fraud-no'}">${c.fraud_reported === 'Y' ? 'FLAGGED' : 'clear'}</td>
+      </tr>
+    `).join('');
+  }
+
+  function applyFilters() {
+    const state = document.getElementById('filterState').value;
+    const severity = document.getElementById('filterSeverity').value;
+    const fraud = document.getElementById('filterFraud').value;
+
+    let filtered = allClaims;
+    if (state) filtered = filtered.filter(c => c.policy_state === state);
+    if (severity) filtered = filtered.filter(c => c.incident.incident_severity === severity);
+    if (fraud) filtered = filtered.filter(c => c.fraud_reported === fraud);
+
+    renderSummary(filtered);
+    renderTable(filtered);
+  }
+
+  document.getElementById('filterState').addEventListener('change', applyFilters);
+  document.getElementById('filterSeverity').addEventListener('change', applyFilters);
+  document.getElementById('filterFraud').addEventListener('change', applyFilters);
+
+  loadClaims();
+</script>
+
+</body>
+</html>
